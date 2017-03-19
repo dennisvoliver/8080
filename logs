@@ -1,0 +1,390 @@
+>>
+Wed Oct 21 21:36:41 PHT 2015
+This is a simulator project for the Intel 8080 microprocessor.
+It is one of the oldest 8-bit CPUs in history and is quite interesting to simulate.
+The project will officially start as soon as the program desgin is finished and coding will begin.
+>>Wed Oct 21 21:40:35 PHT 2015
+testing the logging script
+>> Wed Oct 21 21:41:26 PHT 2015
+let's see
+>> Wed Oct 21 21:41:36 PHT 2015
+that's good
+>> Thu Oct 22 19:35:37 PHT 2015
+Why should the CPU distinguish between memory and io?
+Why not just add another bit to the address line?
+>> Fri Oct 23 01:44:20 PHT 2015
+nothing
+just saying good evening
+>> Sat Oct 24 13:03:11 PHT 2015
+The first two bits of LOD and STO instructions are 00.
+The first two bits of MOV instructions are 01.
+The role of the CPU in a memory read is just to supply the address and wait for the memory subsystem to supply the date on its data bus.
+But how does the CPU know when it should read the data on the data bus?
+How does the CPU know that the memory is done?
+There must be an internal mechanism that "waits" on the data bus.
+Or there could be another wire that tells the CPU that a new information has arrived.
+It cannot rely solely on electric signals, because the memory might return a data value of 00000000, which is represented by no electric signal.
+According to Randall Hyde in his book Art of x86 Assembly, the TTL logic represents the value zero with a voltage in the range of 0.0 - 0.8 volts.
+It represents the value one with the voltage in the range 2.4 - 2.5 volts.
+Therefore, there must be another wire that tells the CPU that a new data has arrived on the data bus.
+
+Another thing to worry about is polling.
+See, electronic black boxes are reactive, they react to the inputs they receive.
+Which means that their actions are always trigerred (at some point in time) by an outside force.
+This outside force may come at any given time.
+In software, that is not always the case. In order to mimic that behavior, a program must _do_ something in order to "wait" for an outside force.
+This is called polling.
+In software world, "waiting" is an activity.
+It requires effort to wait.
+Concepts like signals and daemons were invented precisely because programs do not generally behave similarly as eletronic devices.
+
+If we were to simulate the internal components of a CPU instead of just its beheavior, we will need to use awkward programming constructs.
+
+We must limit our project to the following:
+1. The program must be capable of reading a machine code written for the 8080 microprocessor.
+2. The output of the program must be similar to the output of the 8080 processor.
+if given the same input.
+
+Requirement number 1 is redundant.
+The project goal must be:
+	Given the same input, the simulator and the 8080 microprocessor must give the same output.
+
+The 8-bit MOV instructions have a pattern.
+t bits as register identifiers.
+An exception is the [HL] parameter, represented by 110.
+memory location whose address is store in the registers H and L.
+>> Sat Oct 24 14:11:49 PHT 2015
+ctrl-u deletes the entire line
+but the terminal echoes every character written
+>> Sat Oct 24 14:12:54 PHT 2015
+if the text bumps into the border of the terminal, it acts as though a newline has been entered
+but cat doesn't, it only knows newline as a character, totally ignorant of the terminal border
+>> Sat Oct 24 14:14:13 PHT 2015
+that's why some lines in this log book are missing
+see? the previous line was not delete on my terminal but cat deletes them
+>> Sat Oct 24 14:16:24 PHT 2015
+Using cat as your editor makes me sound like a non-English speaking Asian.
+See that? I made two typos that implies I do not know basic English.
+>> Sat Oct 24 14:19:59 PHT 2015
+This logbook seems really stupid.
+Anyway, we digress.
+
+The MOV pattern frees us from the tedious task of coding all MOV instructions.
+There is, however, a weird exception.
+The code for HLT (halt) is
+01110110
+which is equivalent to
+MOV [HL], [HL]
+
+but fortunately that MOV instruction does not exist.
+
+We can use an array to represent the registers like
+word_t reg[REGMAX];
+
+where REGMAX is 8 in this instance.
+word_t will be an 8-bit data type.
+So the MOVE instruction is
+
+if first two bits of opcode is 01 then
+	move reg[last three bits] to reg[bits 2-4]
+
+or something like that
+
+No, each 3-bit needs to be inspected in case they correspond to [HL] which
+has a totally different algorithm.
+And we also have to worry about HLT.
+
+Suppose we separate the decoding of MOV into another subroutine.
+
+void move(word_t opcode)
+{
+	if ((MASK & opcode) == HL)
+		if (MASK & opcode) == HL
+			halt;
+		else if register
+			move content of register to mem in HL
+		
+	else if (yada yada yada
+
+The move instruction alone requires lots of coding complexities but it's
+more interesting than just using a #define on all the MOV opcodes.
+>> Sat Oct 24 23:58:26 PHT 2015
+Should the decode subroutine be capable of calling the fetch subroutine?
+Or should it just return some error code to main to tell it that it needs
+more parameters?
+The former destroys hierarchy but the latter requires another parameter to
+the decode subroutine, one that tells it whether it is reading an opcode
+or a parameter.
+>> Sun Oct 25 01:21:22 PHT 2015
+I guess we have no choice but to use signals and pipes when implementing the
+interrupt mechanism of the 8080.
+This means we need a different module for the keyboard and the monitor.
+Of course, this cannot be implemented early as it involves a lot of complexities.
+The project will no doubt take at least a month to be barely satisfying.
+
+Wow, the Motorola 6800 answers my question on why the I/O subsystem must be
+different from the memory subsystem: it doesn't have to be.
+
+It even has nothing but two general-purpose registers! The architecture is so simple!
+
+The down-side is that it is a big-endian system, which sucks ballz.
+Aha! the RISC architecture uses uniform instruction size for all opcodes!
+This makes decoding much simpler, with a small sacrifice of a bigger program
+text. Which is fine, because storage devices are cheap and file compressors
+are very good, and RAM is ever-increasing.
+But during those times, when bits are very expensive, this is probably a pretty
+inefficient design decision.
+
+Wait, if the data input bus is different from the data output bus, how come
+the microprocessor only has 8 data lines, both for input and output?
+>> Mon Nov 9 13:30:50 PHT 2015
+After more than two weeks of procrastination, I am back.
+Let's get this done.
+>> Mon Nov 9 14:25:31 PHT 2015
+If on every machine cycle, it checks all lines that may cause an interrupt of the process flow, then it should
+behave as an electric black box.
+>> Mon Nov 9 17:03:13 PHT 2015
+We need a different module for determining the type of instruction to be executed and one that actually
+executes the instructions.
+>> Mon Nov 9 18:57:25 PHT 2015
+The decoder will return the type of code to be executed.
+The execute() function will have arguments like the type of operation and the instruction itself.
+execute() will fetch more bytes if necessary.
+
+>> Mon Nov 9 23:02:25 PHT 2015
+The development process is being delayed greatly by the decoding process. If we select a subset of the language
+that will postpone (if not avoid) complex decoding then we can test the machine early and perhaps shift our
+focus on more important things than instruction encoding.
+
+MOV r1, r2
+HLT
+MVI r
+ADD r
+SUB r
+ANA
+XRA r
+ORA r
+CMP r
+SUI
+ANI
+XRI
+ORI
+CPI
+RLC
+RRC
+JMP
+JC
+JNC
+JZ
+JNZ
+JP
+JM
+STA
+LDA
+PCHL
+STAX B
+LDAX B
+CMA
+STC
+CMC
+>> Tue Nov 10 00:16:42 PHT 2015
+
+Below are functions I would like to implement:
+MOV r1, r2	; move contents of register r2 to r1
+HLT		; stop the machine
+MVI r, N	; move immediate value to register r
+ADD r		; add content of r to content of A and store result to A
+SUB r		; same as above but for subtraction
+ADI N		; add immediate value to A
+SUI N		; subtract immediate value to A
+ANI N		; AND immediate value to A
+XRI N		; exclusive OR immediate value to A
+ORI N		; inclusive OR immediate value to A
+CPI N		; compare immediate value to A
+ANA r		; AND register with A
+XRA r		; exclusive OR register value with A
+ORA r		; inclusive OR register value with A
+CMP r		; compare register value with A
+RLC		; rotate A to left, set carry to new low bit
+RRC		; rotate A to right, set carry bit to new high bit
+JMP M 		; unconditional jump
+JC M 		; jump if carry flag is set
+JNC M 		; jump if carry flag is clear
+JZ M 		; jump if zero flag is set
+JNZ M 		; jump if zero flag is clear
+JP M 		; jump if sign bit is clear (positive)
+JM M 		; jump if sign bit is set (minus)
+STA M		; store contents of A to memory
+LDA M		; load contents of memory to A
+PCHL		; load [HL] to program counter
+STAXD		; store A to [DE]
+LODXD		; load [DE] to A
+CMA		; complement A
+STC		; set carry flag
+CMC		; complement carry flag
+
+I have decoded not to include the stack instructions as they serve only as more convenient store and load
+instructions.
+The call/return instructions are also ommitted as they can be replaced by jumps.
+Interrupts are posponed because they are complicated.
+Input/output ports are also disregarded because they can be mapped to memory.
+Increments will also be implemented as ADI 1
+These 31 instructions will be the skeleton prototype.
+We will attempt to make programs using these to see if we need more instructions.
+We will be using a simple switch statement for decoding (except for MOV, because that will add 49 cases).
+
+It would be very convenient to also implement the increment and decrement instructions
+INR r		; increment value on register r
+DCR r		; decrement value on register r
+
+If we find ourselvs not using it very much then we will remove it for the sake of simplicity.
+I must agree that the MOV and MVI functions are very ugly. However, the 8080 processor does not have something
+like LOR and STAR that loads and stores values from/to register and accumulator.
+If we can add those two then we can get rid of the MOV and MVI functions, making our machine a total accumulator
+machine.
+It also makes the decoding algorithm uniform.
+On the case of MVI, we can just XOR the accumulator and ADI the number we want, then move it our desired register.
+
+Not really, decoding is not uniform even if we removed the two MOVs.
+Every instruction that has an r will require complex decoding.
+All instructions with M require three fetches.
+
+We will keep the MOVs to allow us to call the prototype a _subset_ of the 8080 machine.
+The next phase (before coding) will be to use this language for actual programming to expose the inefficiencies
+and redundancies.
+>> Tue Nov 10 01:37:30 PHT 2015
+Although the machine is relatively easy to implement, programming it is very cumbersome. The 8 bit data width
+is very restrictive.
+>> Tue Nov 10 10:41:58 PHT 2015
+The disadvantage of not including the IN/OUT instructions is that your output is severely limited by the
+size of the memory. Memory mapped I/O is not implemented in the 8080.
+>> Tue Nov 10 12:31:19 PHT 2015
+It says in the manual that before an instruction is executed, the program counter is incremented. Does that mean
+the machine decodes the instruction pointed to by the program counter, then increments the program counter, and
+finally execute the instruction? This makes it obvious that decoding is a separate module from execution.
+
+But my inital implementations very much glues the two together.
+By separating the decoding and program execution, the execute() module should have its own version of opcodes
+which may or may not be different from the encoded instruction.
+
+If it is different, then the execute() module has in it hardcoded instructions which explodes exponentially
+as the number of arguments increase. For instance, let's say a MOV instruction in the execute module has
+a different opcode for each of the registers, and there are 7 registers, that means the MOV alone has 49
+different opcodes in the execute module.
+
+But let's say it doesn't. Suppose that a MOV instruction is also a subroutine in the execute() module.
+It takes for its arguments two 3-bit signals that denote the two registers to be operated on.
+
+Okay, sounds good. What about memory addressing? We can create another subroutine completely different from
+the MOV instruction that takes one 3-bit signal and a 16-bit signal.
+
+It seems plausible but it sounds icky. Suppose that there is an invisible 16-bit register that contains data,
+instead of pointers to data. Suppose then that a different module handles the acquisition of these data
+given the pointer. That way, the subroutines like MOV in the execute module can be completely unaware of
+whether he is moving data from register or memory. All he will do is copy the contents of the invisible data
+register X to another invisible register Y.
+
+Then another subroutine that passes the data in these two registers to the visible registers or memory.
+What I am saying is that all message passing should be done by a completely different module.
+
+>> Tue Nov 10 13:08:22 PHT 2015
+We need an ALU.
+It will take three arguments: two for data and one for switch.
+The two data arguments are what the ALU will work on.
+It will have one output register.
+
+The message passer will deal with what to latch on the two input registers and where to put the content
+of the output register. The ALU will be completely ignorant of any message passwing. It will focus on
+manipulating its two arguments based on the switch, also taken cared of by the message passer.
+
+Even a MOV instruction can use the ALU, it will simply output one of the input registers. The message passer
+will be the one to "wire" the output register to the other input register. Thus, a MOV is accomplished.
+
+>> Tue Nov 10 14:35:00 PHT 2015
+The decode() module should determine four things:
+	(a) whether the ALU is require in this operation
+	(b) the location of input datas
+	(c) the location of output datas
+
+>> Tue Nov 10 16:07:00 PHT 2015
+I have to read the whole 8080 manual first, to ensure I don't miss any important feature.
+Then we'll weed out the not-so-important ones.
+>> Tue Nov 10 17:27:42 PHT 2015
+We cannot replace the SUB instruction with a two's complement and an ADD. This is because the SUB treats the
+carry bit differently from the ADD. This is useful when dealing with multi-byte numbers.
+>> Tue Nov 10 19:12:00 PHT 2015
+The use of global variables is very tempting as it simulates how electronic black boxes behave.
+It is, however, a bad programming practice. There is a chance that the global variables be changed by some
+other subroutine somewhere else.
+
+Using two data parameters for the ALU is weird.
+
+But the alternative is to use a static variable for storing the first operand.
+>> Tue Nov 10 21:14:08 PHT 2015
+Since arithmetic and logical instructions are the only ones that affect the flags, it may seem sensible to
+make the flag as a static variable inside the alu instead of a global variable.
+Any instruction that requires flag checking will request a copy of the flags from the alu.
+Setting individual flags may also be handled by the ALU through its control lines.
+>> Tue Nov 10 22:18:08 PHT 2015
+It is possible to check any flag by ANDing the flags register with the appropriate value.
+This can also be done by the ALU.
+Modification of flags require separate control signals. But each flag can be identified by the setting the
+data line to any FLG_ mask.
+>> Wed Nov 11 10:59:45 PHT 2015
+For decoding, instructions which have the least static information should be filtered first.
+For instance, the class of instructions which operate on the accumulator is identified by the highest two bits.
+Those which have the least variable information will be treated as exceptions to the filter and are identified
+using a switch statement.
+>> Wed Nov 11 11:41:19 PHT 2015
+Making the register A invisible outside the ALU will require some awkward coding constructs.
+We will not remove the accumulator inside the the ALU, but the "official" accumulator register should
+still be the register A, which is global to all functions.
+>> Wed Nov 11 11:44:56 PHT 2015
+It would be better to remove the static variable inside the ALU and just let it access the global array
+of registers. But it will still perform all its operations on the accumulator, just that it won't be inside it
+in reality.
+>> Wed Nov 11 12:11:05 PHT 2015
+Multibyte subtration will not work if the last bit of the lower byte of the subtrahend is 1.
+
+I got it, in a SUB instruction, the carry bit is set if an overflow does _not_ occur, regardless of the value of the
+highest bit.
+It is cleared it an overflow occurs. An overflow is an indication that the subtrahend is lower than the minuend.
+This behavior is the inverse of the ADD instruction, where the carry bit is set if an overflow occurs.
+>> Wed Nov 11 12:29:14 PHT 2015
+
+The setting of the carry bit when there is no overflow, I think, is called an "underflow". I think I read that
+somewhere in Wikipedia.
+>> Wed Nov 11 15:52:10 PHT 2015
+
+Every wondered why register A is not encoded as 000 but 111 ?
+This is because access to the accumulator requires special switches from the ALU.
+It cannot be treated in the same manner as the other general-purpose registers.
+It's like register M. Not really a register but a code for data located in memory.
+
+Therefore, it is only sensible that we keep the accumulator inside the alu function as a static variable, intead
+of a global one.
+>> Wed Nov 11 21:46:32 PHT 2015
+The CMP instruction will be useless if one of the operands is 0x80. This is because the complement of 0x80 in
+a byte is also 0x80.
+	/* For safety, we need to shave the extra byte.
+	 * This is because the only reason why accu is greater than
+	 * one byte is for overflow checking of certain operators.
+	 * The overflowed bits should not be carried over to another operator,
+	 * that's what the carry flag is for.
+	 *
+	 * It is for this same reason that any value assigned, added or subtracted
+	 * to accu must be one byte wide. This is especially important when dealing
+	 * with constants, as the C language extends field widths to fit the variable
+	 * without telling you much.
+	 *
+	 * Why not just use a temporary two-byte variable for operators that need to check
+	 * for overflows instead of extending the accumulator to two bytes?
+	 * It will require plenty of awkward coding constructs and it does
+	 * not guarantee that there will be less bugs that way.
+	 * But most importantly because the existing code is hard to understand.
+	 * It's all bit fiddling and shit.
+	 */
+>> Thu Nov 12 00:38:58 PHT 2015
+>> Thu Nov 12 00:39:13 PHT 2015
+The above is a verbose comment I decided not to include in the source code.
+I prefer brief comments that I can ignore.
